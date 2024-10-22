@@ -1,6 +1,8 @@
 from tkinter import filedialog, messagebox
 from ultralytics import YOLO
 import numpy as np
+import torch
+import torchvision.ops
 
 class YoloV8ImportModel:
     def __init__(self):
@@ -11,7 +13,8 @@ class YoloV8ImportModel:
         self.model_path = filedialog.askopenfilename(filetypes=[("YOLO model", "*.pt")])
         if self.model_path:
             try:
-                self.model = YOLO(self.model_path)
+                device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                self.model = YOLO(self.model_path).to(device)
                 return True
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load YOLO model:\n{e}")
@@ -32,42 +35,16 @@ class YoloV8ImportModel:
         if len(boxes) == 0:
             return []
 
-        # Convert to numpy arrays for easier manipulation
-        boxes = np.array(boxes)
-        scores = np.array(scores)
+        # Convert to torch tensors for faster computation
+        boxes = torch.tensor(boxes)
+        scores = torch.tensor(scores)
 
-        # Compute the area of the bounding boxes
-        x1 = boxes[:, 0]
-        y1 = boxes[:, 1]
-        x2 = boxes[:, 2]
-        y2 = boxes[:, 3]
-        areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+        # Use torchvision's built-in NMS function
+        keep = torchvision.ops.nms(boxes, scores, iou_threshold)
 
-        # Sort the bounding boxes by their scores in descending order
-        order = scores.argsort()[::-1]
+        return keep.tolist()
 
-        keep = []
-        while order.size > 0:
-            i = order[0]
-            keep.append(i)
-
-            xx1 = np.maximum(x1[i], x1[order[1:]])
-            yy1 = np.maximum(y1[i], y1[order[1:]])
-            xx2 = np.minimum(x2[i], x2[order[1:]])
-            yy2 = np.minimum(y2[i], y2[order[1:]])
-
-            w = np.maximum(0, xx2 - xx1 + 1)
-            h = np.maximum(0, yy2 - yy1 + 1)
-            inter = w * h
-
-            iou = inter / (areas[i] + areas[order[1:]] - inter)
-
-            inds = np.where(iou <= iou_threshold)[0]
-            order = order[inds + 1]
-
-        return keep
-
-    def predict(self, image, iou_threshold=0.5, conf_threshold=0.25):
+    def predict(self, image, iou_threshold=0.5, conf_threshold=0.5):
         """
         Perform prediction on the given image and return all detected bboxes.
 
