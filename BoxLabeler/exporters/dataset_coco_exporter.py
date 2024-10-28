@@ -8,8 +8,8 @@ class DatasetCocoExporter(Exporter):
     def export(self, annotations, output_dir):
         os.makedirs(output_dir, exist_ok=True)
         
-        train_images_dir = os.path.join(output_dir,"dataset", "train")
-        val_images_dir = os.path.join(output_dir,"dataset", "val")
+        train_images_dir = os.path.join(output_dir,"dataset", "train2017")
+        val_images_dir = os.path.join(output_dir,"dataset", "val2017")
         annotations_dir = os.path.join(output_dir,"dataset", "annotations")
         os.makedirs(train_images_dir, exist_ok=True)
         os.makedirs(val_images_dir, exist_ok=True)
@@ -87,8 +87,8 @@ class DatasetCocoExporter(Exporter):
 
             image_id += 1
 
-        with open(os.path.join(annotations_dir, 'train.json'), 'w') as f:
+        with open(os.path.join(annotations_dir, 'instances_train2017.json'), 'w') as f:
             json.dump(coco_format_train, f, indent=4)
 
-        with open(os.path.join(annotations_dir, 'val.json'), 'w') as f:
+        with open(os.path.join(annotations_dir, 'instances_val2017.json'), 'w') as f:
             json.dump(coco_format_val, f, indent=4)
